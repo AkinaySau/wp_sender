@@ -24,7 +24,7 @@ class SauSender {
 		self::addData();
 		self::setAdd();
 		add_action( 'wp_ajax_' . self::ACTION, [ __CLASS__, 'sendMail' ] );
-		add_action( 'wp_ajax_nopriv_' . self::ACTION, [ __CLASS__, 'sendMl' ] );
+		add_action( 'wp_ajax_nopriv_' . self::ACTION, [ __CLASS__, 'sendMail' ] );
 	}
 
 	/**
@@ -51,7 +51,7 @@ class SauSender {
 						value="' . esc_attr( get_option( self::OPTION_NAME ) ) . '"
 					/>
 					<p class="description">' . __(
-							'For request (action for "ajax sau_send_mail")', self::OPTION_THEME_LANG
+							'For request (action for ajax "sau_send_mail")', self::OPTION_THEME_LANG
 						) . '</p>
 					';
 				},
@@ -111,18 +111,40 @@ class SauSender {
 			wp_die();
 		}
 		$msg = '<table>';
-		if ( count( $data['formData'] ) ) {
-			foreach ( $data['formData'] as $v ) {
-				$msg .= "<tr><td>{$v['title']}: </td><td>{$v['value']}</td></tr>";
-			}
-		}
+
+		$data['formData'] = json_decode( $data['formData'] )??$data['formData'];
+		$msg              .= self::getRowsO( $data['formData'] );
+		$msg              .= self::getRowsA( $data['formData'] );
+
 		$msg .= '</table>';
 
-		if ( ! wp_mail( $email, $subject, $msg, 'Content-type: text/html;' ) ) {
-			wp_send_json_error();
-		} else {
+		if ( wp_mail( $email, $subject, $msg, 'Content-type: text/html;' ) ) {
 			wp_send_json_success();
+		} else {
+			wp_send_json_error();
 		}
 		wp_die();
+	}
+
+	protected static function getRowsO( $data ) {
+		$rows = '';
+		if ( count( $data ) && is_object( $data ) ) {
+			foreach ( $data as $key => $v ) {
+				$rows .= "<tr><td>" . ($v->title??$key) . ": </td><td>{$v->value}</td></tr>";
+			}
+		}
+
+		return $rows;
+	}
+
+	protected static function getRowsA( $data ) {
+		$rows = '';
+		if ( count( $data ) && is_array( $data ) ) {
+			foreach ( $data as $key => $v ) {
+				$rows .= "<tr><td>" . ( $v['title']??$key) . ": </td><td>{$v['value']}</td></tr>";
+			}
+		}
+
+		return $rows;
 	}
 }
