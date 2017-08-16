@@ -2,7 +2,8 @@
 /**
  * Plugin Name: Sender
  * Plugin URI: http://a-sau.ru
- * Description: Плагин для отправки заявок. E-mail на который будет отправляться почта хранится в мета поле mail-for-send
+ * Description: Плагин для отправки заявок. E-mail на который будет
+ * отправляться почта хранится в мета поле mail-for-send
  * Version: 1.0
  * Author: Akinay Sau
  * Author URI: http://a-sau.ru
@@ -24,24 +25,24 @@ class SauSender {
 		self::addData();
 		self::setAdd();
 		add_action( 'wp_ajax_' . self::ACTION, [ __CLASS__, 'sendMail' ] );
-		add_action( 'wp_ajax_nopriv_' . self::ACTION, [ __CLASS__, 'sendMail' ] );
+		add_action( 'wp_ajax_nopriv_' . self::ACTION, [
+			__CLASS__,
+			'sendMail',
+		] );
 	}
 
 	/**
 	 * Вывод доп поля в админке для email
 	 */
 	private static final function addOption() {
-		add_action(
-			'admin_menu', function () {
+		add_action( 'admin_menu', function () {
 			register_setting( 'general', self::OPTION_NAME );
 
 			// добавляем поле
-			add_settings_field(
-				'sau' . self::OPTION_NAME,
-				__( 'Email', self::OPTION_THEME_LANG ),
-				function ( $val ) {
-					$id = $val['id'];
-					echo '
+			add_settings_field( 'sau'
+			                    . self::OPTION_NAME, __( 'Email', self::OPTION_THEME_LANG ), function ( $val ) {
+				$id = $val['id'];
+				echo '
 					<input
 						class="regular-text ltr"
 						type="email"
@@ -50,46 +51,39 @@ class SauSender {
 						id="' . $id . '"
 						value="' . esc_attr( get_option( self::OPTION_NAME ) ) . '"
 					/>
-					<p class="description">' . __(
-							'For request (action for ajax "sau_send_mail")', self::OPTION_THEME_LANG
-						) . '</p>
+					<p class="description">'
+				     . __( 'For request (action for ajax "sau_send_mail")', self::OPTION_THEME_LANG )
+				     . '</p>
 					';
-				},
-				'general',
-				'default',
-				array(
-					'id'          => 'sau' . self::OPTION_NAME,
-					'option_name' => self::OPTION_NAME
-				)
-			);
-		}
-		);
+			}, 'general', 'default', array(
+				'id'          => 'sau' . self::OPTION_NAME,
+				'option_name' => self::OPTION_NAME,
+			) );
+		} );
 	}
 
 	/**
 	 * Подключение перевода
 	 */
 	private static final function addTranslate() {
-		add_action(
-			'init', function () {
-			load_plugin_textdomain( self::OPTION_THEME_LANG, false, dirname( plugin_basename( __FILE__ ) ) . '/l10n' );
-		}
-		);
+		add_action( 'init', function () {
+			load_plugin_textdomain( self::OPTION_THEME_LANG, false, dirname( plugin_basename( __FILE__ ) )
+			                                                        . '/l10n' );
+		} );
 	}
 
 	/**
 	 * Добавление параметров на страницу
 	 */
 	private static function addData() {
-		add_action(
-			'wp_head', function () {
+		add_action( 'wp_head', function () {
 			$variables = array(
-				'sau_sender_ajax_url' => admin_url( 'admin-ajax.php' ) . '?action=' . self::ACTION,
-				'is_mobile'           => wp_is_mobile()
+				'sau_sender_ajax_url' => admin_url( 'admin-ajax.php' )
+				                         . '?action=' . self::ACTION,
+				'is_mobile'           => wp_is_mobile(),
 			);
 			echo '<script type="text/javascript">window.wp_data = ', json_encode( $variables ), ';</script>';
-		}
-		);
+		} );
 
 	}
 
@@ -103,18 +97,21 @@ class SauSender {
 	public static function sendMail() {
 		$data    = self::$data;
 		$email   = get_option( self::OPTION_NAME, get_option( 'admin_email', '' ) );
-		$subject = ( $data['thm']??__( 'Form', self::OPTION_THEME_LANG ) ) . " " . __(
-				'from the website', self::OPTION_THEME_LANG
-			) . " " . $_SERVER['SERVER_NAME'];
+		$subject = ( $data['thm'] ?? __( 'Form', self::OPTION_THEME_LANG ) )
+		           . " " . __( 'from the website', self::OPTION_THEME_LANG )
+		           . " " . $_SERVER['SERVER_NAME'];
 		if ( empty( $email ) ) {
 			wp_send_json_error( __( 'Empty email', self::OPTION_THEME_LANG ) );
 			wp_die();
 		}
 		$msg = '<table>';
 
-		$data['formData'] = json_decode( $data['formData'] )??$data['formData'];
-		$msg              .= self::getRowsO( $data['formData'] );
-		$msg              .= self::getRowsA( $data['formData'] );
+		if ( is_string( $data['formData'] ) ) {
+			$data['formData'] = json_decode( $data['formData'] );
+		}
+
+		$msg .= self::getRowsO( $data['formData'] );
+		$msg .= self::getRowsA( $data['formData'] );
 
 		$msg .= '</table>';
 
@@ -130,7 +127,8 @@ class SauSender {
 		$rows = '';
 		if ( count( $data ) && is_object( $data ) ) {
 			foreach ( $data as $key => $v ) {
-				$rows .= "<tr><td>" . ($v->title??$key) . ": </td><td>{$v->value}</td></tr>";
+				$rows .= "<tr><td>" . ( $v->title ?? $key )
+				         . ": </td><td>{$v->value}</td></tr>";
 			}
 		}
 
@@ -141,7 +139,8 @@ class SauSender {
 		$rows = '';
 		if ( count( $data ) && is_array( $data ) ) {
 			foreach ( $data as $key => $v ) {
-				$rows .= "<tr><td>" . ( $v['title']??$key) . ": </td><td>{$v['value']}</td></tr>";
+				$rows .= "<tr><td>" . ( $v['title'] ?? $key )
+				         . ": </td><td>{$v['value']}</td></tr>";
 			}
 		}
 
