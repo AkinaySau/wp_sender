@@ -78,8 +78,9 @@ class SauSender {
 		);
 		/**
 		 * Обработка данных для генерации переменных в js на странице
+		 * todo: нужен фильтр
 		 */
-		do_action( 'sau_sender_page_data', $variables );
+//		do_action( 'sau_sender_page_data', $variables );
 
 		add_action( 'wp_head', function () use ( $variables ) {
 			if ( is_array( $variables ) ) {
@@ -91,6 +92,16 @@ class SauSender {
 
 	private static function setAdd() {
 		self::$data = $_POST;
+
+		if ( is_string( self::$data['formData'] ) ) {
+			self::$data['formData'] = json_decode( self::$data['formData'] );
+		}
+
+		/**
+		 * Событие для обработки пришедших данных
+		 * TODO: нужен ещё и фильтр
+		 */
+		//		do_action( 'sau_sender_data_send', self::$data );
 	}
 
 	/**
@@ -100,7 +111,7 @@ class SauSender {
 		/**
 		 * Событие начала генерации отправки письма
 		 */
-		do_action( 'sau_sender_before_send_mail' );
+		do_action( 'sau_sender_before_send_mail', self::$data );
 
 		$data = self::$data;
 
@@ -108,24 +119,9 @@ class SauSender {
 		$subject = ( $data['thm'] ?? __( 'Form', self::OPTION_THEME_LANG ) ) . " " . __( 'from the website', self::OPTION_THEME_LANG ) . " " . $_SERVER['SERVER_NAME'];
 		if ( empty( $email ) ) {
 			wp_send_json_error( __( 'Empty email', self::OPTION_THEME_LANG ) );
-
-			/**
-			 * Событие ошибки отправки письма если не задан email
-			 */
-			do_action( 'sau_sender_after_error_send_mail_empty_email' );
-
 			wp_die();
 		}
 		$msg = '<table>';
-
-		if ( is_string( $data['formData'] ) ) {
-			$data['formData'] = json_decode( $data['formData'] );
-		}
-
-		/**
-		 * Событие для модификации пришедших данных
-		 */
-		do_action( 'sau_sender_data_send', $data );
 
 		$msg .= self::getRowsO( $data['formData'] );
 		$msg .= self::getRowsA( $data['formData'] );
@@ -133,17 +129,14 @@ class SauSender {
 		$msg .= '</table>';
 
 		if ( wp_mail( $email, $subject, $msg, 'Content-type: text/html;' ) ) {
-			wp_send_json_success();
 			/**
 			 * Событие после удачной отправки письма
 			 */
-			do_action( 'sau_sender_after_success_send_mail' );
+			do_action( 'sau_sender_after_success_send_mail', self::$data );
+
+			wp_send_json_success();
 		} else {
 			wp_send_json_error();
-			/**
-			 * Событие после неудачной попытки отправки письма
-			 */
-			do_action( 'sau_sender_after_error_send_mail' );
 		}
 		wp_die();
 	}
