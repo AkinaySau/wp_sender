@@ -4,7 +4,7 @@
  * Plugin URI: http://a-sau.ru
  * Description: Плагин для отправки заявок. E-mail на который будет
  * отправляться почта хранится в мета поле mail-for-send
- * Version: 1.0
+ * Version: 1.0.1
  * Author: Akinay Sau
  * Author URI: http://a-sau.ru
  * License: MTI
@@ -39,21 +39,18 @@ class SauSender {
 			register_setting( 'general', self::OPTION_NAME );
 
 			// добавляем поле
-			add_settings_field( 'sau'
-			                    . self::OPTION_NAME, __( 'Email', self::OPTION_THEME_LANG ), function ( $val ) {
+			add_settings_field( 'sau' . self::OPTION_NAME, __( 'Email', self::OPTION_THEME_LANG ), function ( $val ) {
 				$id = $val['id'];
 				echo '
 					<input
 						class="regular-text ltr"
 						type="email"
-						required="required"
+						required
 						name="' . self::OPTION_NAME . '"
 						id="' . $id . '"
 						value="' . esc_attr( get_option( self::OPTION_NAME ) ) . '"
 					/>
-					<p class="description">'
-				     . __( 'For request (action for ajax "sau_send_mail")', self::OPTION_THEME_LANG )
-				     . '</p>
+					<p class="description">' . __( 'For request (action for ajax "sau_send_mail")', self::OPTION_THEME_LANG ) . '</p>
 					';
 			}, 'general', 'default', array(
 				'id'          => 'sau' . self::OPTION_NAME,
@@ -67,8 +64,7 @@ class SauSender {
 	 */
 	private static final function addTranslate() {
 		add_action( 'init', function () {
-			load_plugin_textdomain( self::OPTION_THEME_LANG, false, dirname( plugin_basename( __FILE__ ) )
-			                                                        . '/l10n' );
+			load_plugin_textdomain( self::OPTION_THEME_LANG, false, dirname( plugin_basename( __FILE__ ) ) . '/l10n' );
 		} );
 	}
 
@@ -76,13 +72,19 @@ class SauSender {
 	 * Добавление параметров на страницу
 	 */
 	private static function addData() {
-		add_action( 'wp_head', function () {
-			$variables = array(
-				'sau_sender_ajax_url' => admin_url( 'admin-ajax.php' )
-				                         . '?action=' . self::ACTION,
-				'is_mobile'           => wp_is_mobile(),
-			);
-			echo '<script type="text/javascript">window.wp_data = ', json_encode( $variables ), ';</script>';
+		$variables = array(
+			'sau_sender_ajax_url' => admin_url( 'admin-ajax.php' ) . '?action=' . self::ACTION,
+			'is_mobile'           => wp_is_mobile(),
+		);
+		/**
+		 * Обработка данных для генерации переменных в js на странице
+		 */
+		do_action( 'sau_sender_page_data', $variables );
+
+		add_action( 'wp_head', function () use ( $variables ) {
+			if ( is_array( $variables ) ) {
+				echo '<script type="text/javascript">window.wp_data = ', json_encode( $variables ), ';</script>';
+			}
 		} );
 
 	}
@@ -95,13 +97,23 @@ class SauSender {
 	 * Обработка ajax
 	 */
 	public static function sendMail() {
-		$data    = self::$data;
+		/**
+		 * Событие начала генерации отправки письма
+		 */
+		do_action( 'sau_sender_before_send_mail' );
+
+		$data = self::$data;
+
 		$email   = get_option( self::OPTION_NAME, get_option( 'admin_email', '' ) );
-		$subject = ( $data['thm'] ?? __( 'Form', self::OPTION_THEME_LANG ) )
-		           . " " . __( 'from the website', self::OPTION_THEME_LANG )
-		           . " " . $_SERVER['SERVER_NAME'];
+		$subject = ( $data['thm'] ?? __( 'Form', self::OPTION_THEME_LANG ) ) . " " . __( 'from the website', self::OPTION_THEME_LANG ) . " " . $_SERVER['SERVER_NAME'];
 		if ( empty( $email ) ) {
 			wp_send_json_error( __( 'Empty email', self::OPTION_THEME_LANG ) );
+
+			/**
+			 * Событие ошибки отправки письма если не задан email
+			 */
+			do_action( 'sau_sender_after_error_send_mail_empty_email' );
+
 			wp_die();
 		}
 		$msg = '<table>';
@@ -110,6 +122,11 @@ class SauSender {
 			$data['formData'] = json_decode( $data['formData'] );
 		}
 
+		/**
+		 * Событие для модификации пришедших данных
+		 */
+		do_action( 'sau_sender_data_send', $data );
+
 		$msg .= self::getRowsO( $data['formData'] );
 		$msg .= self::getRowsA( $data['formData'] );
 
@@ -117,8 +134,16 @@ class SauSender {
 
 		if ( wp_mail( $email, $subject, $msg, 'Content-type: text/html;' ) ) {
 			wp_send_json_success();
+			/**
+			 * Событие после удачной отправки письма
+			 */
+			do_action( 'sau_sender_after_success_send_mail' );
 		} else {
 			wp_send_json_error();
+			/**
+			 * Событие после неудачной попытки отправки письма
+			 */
+			do_action( 'sau_sender_after_error_send_mail' );
 		}
 		wp_die();
 	}
@@ -127,8 +152,7 @@ class SauSender {
 		$rows = '';
 		if ( count( $data ) && is_object( $data ) ) {
 			foreach ( $data as $key => $v ) {
-				$rows .= "<tr><td>" . ( $v->title ?? $key )
-				         . ": </td><td>{$v->value}</td></tr>";
+				$rows .= "<tr><td>" . ( $v->title ?? $key ) . ": </td><td>{$v->value}</td></tr>";
 			}
 		}
 
@@ -139,8 +163,7 @@ class SauSender {
 		$rows = '';
 		if ( count( $data ) && is_array( $data ) ) {
 			foreach ( $data as $key => $v ) {
-				$rows .= "<tr><td>" . ( $v['title'] ?? $key )
-				         . ": </td><td>{$v['value']}</td></tr>";
+				$rows .= "<tr><td>" . ( $v['title'] ?? $key ) . ": </td><td>{$v['value']}</td></tr>";
 			}
 		}
 
