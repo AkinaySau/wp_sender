@@ -93,7 +93,7 @@ class SauSender {
 	private static function setAdd() {
 		self::$data = $_POST;
 
-		if ( is_string( self::$data['formData'] ) ) {
+		if ( isset(self::$data['formData']) && is_string( self::$data['formData'] ) ) {
 			self::$data['formData'] = json_decode( self::$data['formData'] );
 		}
 
