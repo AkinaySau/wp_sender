@@ -1,0 +1,24 @@
+{
+	"name": "sau/wp-send-mail",
+	"description": "Plugin for send mail",
+	"minimum-stability": "stable",
+	"license": "BSD-3",
+	"version": "2.0.0",
+	"authors": [
+		{
+			"name": "Akinay Sau (Vladimir M)",
+			"email": "akinay.sau@gmail.com",
+			"homepage": "http://sauri.pw",
+			"role": "Developer"
+		}
+	],
+	"autoload": {
+		"psr-4": {
+			"Sau\\WP\\Plugin\\SendMail\\": "src"
+		}
+	},
+	"require": {
+		"swiftmailer/swiftmailer": "^6.2",
+		"sau/wp-settings-api": "^1.0"
+	}
+}

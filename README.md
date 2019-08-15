@@ -1,8 +1,11 @@
-# Плагин для отправки почты.
+# Send mail
+Plugin for send mail to admin use SMTP
 
-js переменная **window.wp_data.sau_sender_ajax_url** содержит url для отправки ajax
+## Install
+Go in wp plugin dir
+```bash
+cd </path_to_project>/wp-content/plugins
+git clone https://github.com/AkinaySau/wp-plugin-send-mail.git send-mail
 
-v1.0.1
-Добавлены события
- - Событие начала генерации отправки письма
- - Событие после удачной отправки письма
+cd send-mailcomposer install
+``` 
