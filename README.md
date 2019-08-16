@@ -1,5 +1,10 @@
 # Плагин для отправки почты.
 
+
+Плагин устарел новый [тут](https://github.com/AkinaySau/wp-plugin-send-mail)
+
+---
+
 js переменная **window.wp_data.sau_sender_ajax_url** содержит url для отправки ajax
 
 v1.0.1
